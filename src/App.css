@@ -104,10 +104,15 @@ body {
 /* Controls */
 .controls {
   display: flex;
-  gap: 10px;
+  gap: 15px;
   justify-content: center;
-  margin-bottom: 20px;
+  align-items: center;
+  margin-bottom: 30px;
   flex-wrap: wrap;
+  background: rgba(255, 255, 255, 0.95);
+  padding: 15px 25px;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
 }
 
 .controls button {
@@ -121,6 +126,19 @@ body {
   transition: all 0.3s;
 }
 
+.controls button.refresh-button {
+  background: #667eea;
+  color: white;
+  padding: 12px 30px;
+  font-size: 1rem;
+}
+
+.controls button.refresh-button:hover:not(:disabled) {
+  background: #5568d3;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
 .controls button:hover:not(:disabled) {
   background: #667eea;
   color: white;
@@ -129,6 +147,15 @@ body {
 .controls button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.controls .last-updated {
+  color: #666;
+  font-size: 0.9rem;
+  padding: 8px 12px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  font-weight: 500;
 }
 
 /* Item Input */
@@ -297,6 +324,26 @@ body {
   border-radius: 10px;
   margin-bottom: 20px;
   border: 2px solid #f5c6cb;
+  text-align: center;
+}
+
+.error p {
+  margin-bottom: 15px;
+}
+
+.error button {
+  padding: 10px 20px;
+  background: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.error button:hover {
+  background: #c82333;
 }
 
 /* Results */
