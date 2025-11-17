@@ -465,6 +465,42 @@ body {
   font-size: 1.3rem;
 }
 
+/* Bonus Items Info */
+.bonus-items-info {
+  margin-top: 15px;
+  padding: 12px;
+  background: #e7f3ff;
+  border-radius: 8px;
+  border-left: 4px solid #2196f3;
+}
+
+.bonus-label {
+  display: block;
+  font-weight: bold;
+  color: #1976d2;
+  margin-bottom: 8px;
+  font-size: 0.95rem;
+}
+
+.bonus-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.bonus-list li {
+  padding: 4px 0;
+  color: #555;
+  font-size: 0.9rem;
+}
+
+.bonus-list li::before {
+  content: "✓ ";
+  color: #4caf50;
+  font-weight: bold;
+  margin-right: 5px;
+}
+
 /* Empty State */
 .empty-state {
   text-align: center;

@@ -1,4 +1,12 @@
-import { PriceEfficiency } from '../types';
+interface PriceEfficiency {
+  itemName: string;
+  cashPrice: number;
+  tradeableValue: number;
+  boundValue: number;
+  totalValue: number;
+  efficiency: number;
+  selectedBonusItems?: string[];
+}
 
 interface Props {
   efficiency: PriceEfficiency;
@@ -49,6 +57,17 @@ export function ItemEfficiencyCard({ efficiency, isPackage10 }: Props) {
             {formatEfficiency(efficiency.efficiency)} 골드/캐시
           </span>
         </div>
+
+        {efficiency.selectedBonusItems && efficiency.selectedBonusItems.length > 0 && (
+          <div className="bonus-items-info">
+            <span className="bonus-label">선택된 보너스:</span>
+            <ul className="bonus-list">
+              {efficiency.selectedBonusItems.map((item, idx) => (
+                <li key={idx}>{item}</li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
     </div>
   );
