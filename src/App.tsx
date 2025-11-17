@@ -1,50 +1,57 @@
-import { useState } from 'react';
-import { CashItem, PriceEfficiency } from './types';
-import { NeoPleAPI } from './services/api';
-import { EfficiencyCalculator } from './services/calculator';
-import { ItemInput } from './components/ItemInput';
+import { useState, useEffect } from 'react';
 import { ItemEfficiencyCard } from './components/ItemEfficiencyCard';
-import { SAMPLE_ITEMS } from './data/items';
 import './App.css';
 
+interface PriceEfficiency {
+  itemName: string;
+  cashPrice: number;
+  tradeableValue: number;
+  boundValue: number;
+  totalValue: number;
+  efficiency: number;
+  selectedBonusItems?: string[];
+}
+
+interface EfficiencyResponse {
+  single: PriceEfficiency;
+  package10?: PriceEfficiency;
+}
+
+interface ApiResponse {
+  items: Record<string, EfficiencyResponse>;
+  timestamp: string;
+}
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+
 function App() {
-  const [apiKey, setApiKey] = useState('');
-  const [isApiKeySet, setIsApiKeySet] = useState(false);
-  const [items, setItems] = useState<CashItem[]>([]);
-  const [results, setResults] = useState<
-    Map<string, { single: PriceEfficiency; package10?: PriceEfficiency }>
-  >(new Map());
+  const [results, setResults] = useState<Record<string, EfficiencyResponse>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
 
-  const handleSetApiKey = () => {
-    if (!apiKey.trim()) {
-      alert('API 키를 입력해주세요.');
-      return;
-    }
-    setIsApiKeySet(true);
-    setError(null);
-  };
+  // 컴포넌트 마운트 시 자동으로 데이터 로드
+  useEffect(() => {
+    loadItemsEfficiency();
+  }, []);
 
-  const handleAddItem = async (item: CashItem) => {
-    if (!isApiKeySet) {
-      alert('먼저 API 키를 설정해주세요.');
-      return;
-    }
-
+  const loadItemsEfficiency = async () => {
     setLoading(true);
     setError(null);
 
     try {
-      const api = new NeoPleAPI(apiKey);
-      const calculator = new EfficiencyCalculator(api);
+      const response = await fetch(`${API_URL}/api/items/efficiency`);
 
-      const efficiency = await calculator.calculateSingleItemEfficiency(item);
+      if (!response.ok) {
+        throw new Error(`서버 오류: ${response.status} ${response.statusText}`);
+      }
 
-      setItems([...items, item]);
-      setResults(new Map(results).set(item.name, efficiency));
+      const data: ApiResponse = await response.json();
+
+      setResults(data.items);
+      setLastUpdated(data.timestamp);
     } catch (err) {
-      console.error('Error calculating efficiency:', err);
+      console.error('Error fetching efficiency:', err);
       setError(
         `효율 계산 중 오류가 발생했습니다: ${err instanceof Error ? err.message : '알 수 없는 오류'}`
       );
@@ -53,127 +60,82 @@ function App() {
     }
   };
 
-  const handleLoadSampleItems = async () => {
-    if (!isApiKeySet) {
-      alert('먼저 API 키를 설정해주세요.');
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      const api = new NeoPleAPI(apiKey);
-      const calculator = new EfficiencyCalculator(api);
-
-      const efficiencies = await calculator.calculateMultipleItems(SAMPLE_ITEMS);
-
-      setItems(SAMPLE_ITEMS);
-      setResults(efficiencies);
-    } catch (err) {
-      console.error('Error calculating efficiencies:', err);
-      setError(
-        `효율 계산 중 오류가 발생했습니다: ${err instanceof Error ? err.message : '알 수 없는 오류'}`
-      );
-    } finally {
-      setLoading(false);
-    }
+  const handleRefresh = () => {
+    loadItemsEfficiency();
   };
 
-  const handleClearResults = () => {
-    setItems([]);
-    setResults(new Map());
-    setError(null);
+  const formatLastUpdated = (timestamp: string | null) => {
+    if (!timestamp) return '';
+    const date = new Date(timestamp);
+    return date.toLocaleString('ko-KR', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    });
   };
 
   return (
     <div className="app">
       <header className="app-header">
         <h1>던파 캐시 아이템 효율 계산기</h1>
-        <p>캐시 아이템의 경매장 기반 골드 효율을 확인하세요</p>
+        <p>인기 캐시 아이템의 경매장 기반 골드 효율을 확인하세요</p>
       </header>
 
-      {!isApiKeySet ? (
-        <div className="api-key-section">
-          <h2>API 키 설정</h2>
-          <p>
-            Neople Open API 키가 필요합니다.{' '}
-            <a
-              href="https://developers.neople.co.kr/"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              여기
-            </a>
-            에서 발급받을 수 있습니다.
-          </p>
-          <div className="api-key-input">
-            <input
-              type="text"
-              placeholder="API 키를 입력하세요"
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleSetApiKey()}
-            />
-            <button onClick={handleSetApiKey}>설정</button>
+      <div className="controls">
+        <button onClick={handleRefresh} disabled={loading} className="refresh-button">
+          {loading ? '계산 중...' : '시세 갱신'}
+        </button>
+        {lastUpdated && (
+          <span className="last-updated">
+            최종 업데이트: {formatLastUpdated(lastUpdated)}
+          </span>
+        )}
+      </div>
+
+      {loading && (
+        <div className="loading">
+          <div className="spinner"></div>
+          <p>인기 아이템의 효율을 계산하고 있습니다...</p>
+        </div>
+      )}
+
+      {error && (
+        <div className="error">
+          <p>{error}</p>
+          <button onClick={handleRefresh}>다시 시도</button>
+        </div>
+      )}
+
+      {Object.keys(results).length > 0 && !loading && (
+        <div className="results">
+          <h2>인기 아이템 효율</h2>
+
+          <div className="results-grid">
+            {Object.entries(results).map(([itemName, efficiency]) => (
+              <div key={itemName} className="result-item">
+                <ItemEfficiencyCard efficiency={efficiency.single} />
+                {efficiency.package10 && (
+                  <ItemEfficiencyCard efficiency={efficiency.package10} isPackage10 />
+                )}
+              </div>
+            ))}
           </div>
         </div>
-      ) : (
-        <>
-          <div className="controls">
-            <button onClick={handleLoadSampleItems} disabled={loading}>
-              예시 아이템 불러오기
-            </button>
-            <button onClick={handleClearResults} disabled={loading}>
-              결과 초기화
-            </button>
-            <button onClick={() => setIsApiKeySet(false)}>API 키 변경</button>
-          </div>
+      )}
 
-          <ItemInput onAddItem={handleAddItem} />
-
-          {loading && (
-            <div className="loading">
-              <div className="spinner"></div>
-              <p>효율을 계산하고 있습니다...</p>
-            </div>
-          )}
-
-          {error && (
-            <div className="error">
-              <p>{error}</p>
-            </div>
-          )}
-
-          {results.size > 0 && (
-            <div className="results">
-              <h2>계산 결과</h2>
-
-              <div className="results-grid">
-                {Array.from(results.entries()).map(([itemName, efficiency]) => (
-                  <div key={itemName} className="result-item">
-                    <ItemEfficiencyCard efficiency={efficiency.single} />
-                    {efficiency.package10 && (
-                      <ItemEfficiencyCard efficiency={efficiency.package10} isPackage10 />
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {results.size === 0 && !loading && (
-            <div className="empty-state">
-              <p>아이템을 추가하거나 예시 아이템을 불러와 효율을 계산해보세요.</p>
-            </div>
-          )}
-        </>
+      {Object.keys(results).length === 0 && !loading && !error && (
+        <div className="empty-state">
+          <p>데이터를 불러오는 중입니다...</p>
+        </div>
       )}
 
       <footer className="app-footer">
         <p>
-          데이터 출처: Neople Open API | 최근 거래 내역을 기반으로 계산됩니다. | 실제 시세와
-          차이가 있을 수 있습니다.
+          데이터 출처: Neople Open API | 최근 10개 거래 내역의 평균 가격을 기반으로
+          계산됩니다. | 실제 시세와 차이가 있을 수 있습니다.
         </p>
       </footer>
     </div>
